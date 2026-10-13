@@ -1,0 +1,39 @@
+name: Verify learning lab
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-and-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run backend and helper unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Check route JSON and Compose configuration
+        run: |
+          python scripts/lab.py validate
+          python scripts/lab.py prepare
+          docker compose --env-file labs/01-gateway/.env -f labs/01-gateway/compose.yaml config --quiet
+      - name: Start local lab and verify gateway behavior
+        run: |
+          python scripts/lab.py up
+          python scripts/lab.py init
+          python scripts/lab.py smoke
+      - name: Show container state and logs on failure
+        if: failure()
+        run: |
+          docker compose --env-file labs/01-gateway/.env -f labs/01-gateway/compose.yaml ps
+          docker compose --env-file labs/01-gateway/.env -f labs/01-gateway/compose.yaml logs --tail=100
+      - name: Stop lab while keeping state
+        if: always()
+        run: python scripts/lab.py down

@@ -1,0 +1,22 @@
+{
+  "name": "lab-limited-orders",
+  "uri": "/limited/orders/*",
+  "methods": ["GET"],
+  "plugins": {
+    "proxy-rewrite": {
+      "regex_uri": ["^/limited/(.*)$", "/$1"]
+    },
+    "limit-count": {
+      "count": 2,
+      "time_window": 60,
+      "key_type": "var",
+      "key": "http_x_lab_run",
+      "policy": "local",
+      "rejected_code": 429
+    }
+  },
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {"orders-a:8080": 1, "orders-b:8080": 1}
+  }
+}

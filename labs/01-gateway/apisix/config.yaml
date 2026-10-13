@@ -1,0 +1,28 @@
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+
+nginx_config:
+  envs:
+    - ADMIN_KEY
+
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+  admin:
+    admin_listen:
+      ip: 0.0.0.0
+      port: 9180
+    # Lab only: Docker bridge clients are allowed. Host publishes on loopback only.
+    allow_admin:
+      - 0.0.0.0/0
+    admin_key:
+      - name: lab-admin
+        key: ${{ADMIN_KEY}}
+        role: admin
+  etcd:
+    host:
+      - http://etcd:2379
+    prefix: /apisix
+    timeout: 30

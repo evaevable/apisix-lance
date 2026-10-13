@@ -1,0 +1,93 @@
+name: apisix-lance-lab
+
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.21
+    command:
+      - /usr/local/bin/etcd
+      - --name=lab-etcd
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=lab-etcd=http://etcd:2380
+      - --initial-cluster-state=new
+    volumes:
+      - etcd-data:/etcd-data
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/etcdctl", "--endpoints=http://127.0.0.1:2379", "endpoint", "health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [lab]
+
+  apisix:
+    image: apache/apisix:3.14.1-debian
+    environment:
+      ADMIN_KEY: ${ADMIN_KEY:?Run python3 scripts/lab.py prepare first}
+    volumes:
+      - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    ports:
+      - "127.0.0.1:9080:9080"
+      - "127.0.0.1:9180:9180"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      orders-a:
+        condition: service_healthy
+      orders-b:
+        condition: service_healthy
+      products:
+        condition: service_healthy
+    networks: [lab]
+
+  orders-a:
+    image: python:3.13.7-slim
+    command: ["python", "/app/server.py"]
+    environment:
+      SERVICE_NAME: orders
+      INSTANCE_NAME: orders-a
+      BIND_ADDRESS: 0.0.0.0
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./backend/server.py:/app/server.py:ro
+    healthcheck: &backend-health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [lab]
+
+  orders-b:
+    image: python:3.13.7-slim
+    command: ["python", "/app/server.py"]
+    environment:
+      SERVICE_NAME: orders
+      INSTANCE_NAME: orders-b
+      BIND_ADDRESS: 0.0.0.0
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./backend/server.py:/app/server.py:ro
+    healthcheck: *backend-health
+    networks: [lab]
+
+  products:
+    image: python:3.13.7-slim
+    command: ["python", "/app/server.py"]
+    environment:
+      SERVICE_NAME: products
+      INSTANCE_NAME: products-a
+      BIND_ADDRESS: 0.0.0.0
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./backend/server.py:/app/server.py:ro
+    healthcheck: *backend-health
+    networks: [lab]
+
+networks:
+  lab:
+    driver: bridge
+
+volumes:
+  etcd-data:

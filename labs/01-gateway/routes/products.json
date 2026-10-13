@@ -1,0 +1,9 @@
+{
+  "name": "lab-products",
+  "uri": "/products/*",
+  "methods": ["GET"],
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {"products:8080": 1}
+  }
+}

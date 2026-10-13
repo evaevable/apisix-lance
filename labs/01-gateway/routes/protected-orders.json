@@ -1,0 +1,15 @@
+{
+  "name": "lab-protected-orders",
+  "uri": "/protected/orders/*",
+  "methods": ["GET"],
+  "plugins": {
+    "key-auth": {},
+    "proxy-rewrite": {
+      "regex_uri": ["^/protected/(.*)$", "/$1"]
+    }
+  },
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {"orders-a:8080": 1, "orders-b:8080": 1}
+  }
+}
