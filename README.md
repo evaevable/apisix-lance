@@ -20,10 +20,11 @@
 3. [源码第 3 章：key-auth 如何识别调用方](docs/source/03-key-auth-and-plugin-phases.md)
 4. [源码第 4 章：选节点、健康检查与重试](docs/source/04-load-balancing-and-retries.md)
 5. [源码第 5 章：可观测性——怎么定位一次线上故障](docs/source/05-observability.md)
+6. [源码第 6 章：上游 TLS 与 mTLS](docs/source/06-upstream-tls-mtls.md)
 
 源码阅读固定在官方 APISIX **3.14.1**，提交 `2f8ebf8527cdc878afe30100077c471879a5c133`，与实验的 APISIX 版本对应。笔记使用固定提交的源码链接；少量原文摘录的上游许可证与署名随文保留，不把整个上游仓库复制进学习仓库。
 
-后续再逐章追踪上游 TLS、插件开发与多网关高可用；尚未完成的主题不作为已交付章节。
+后续再逐章追踪插件开发与多网关高可用；尚未完成的主题不作为已交付章节。
 
 ## 仓库内容
 
