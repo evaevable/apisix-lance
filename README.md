@@ -22,6 +22,7 @@
 5. [源码第 5 章：可观测性——怎么定位一次线上故障](docs/source/05-observability.md)
 6. [源码第 6 章：上游 TLS 与 mTLS](docs/source/06-upstream-tls-mtls.md)
 7. [源码第 7 章：自己写一个插件](docs/source/07-plugin-development.md)
+8. [源码第 8 章：多网关高可用与配置分发](docs/source/08-multi-gateway-ha.md)
 
 源码阅读固定在官方 APISIX **3.14.1**，提交 `2f8ebf8527cdc878afe30100077c471879a5c133`，与实验的 APISIX 版本对应。笔记使用固定提交的源码链接；少量原文摘录的上游许可证与署名随文保留，不把整个上游仓库复制进学习仓库。
 
@@ -33,7 +34,8 @@
 docs/                         中文学习笔记与实验步骤
 labs/01-gateway/
   compose.yaml                APISIX + etcd + 3 个演示后端
-  apisix/config.yaml          本地传统 etcd 模式配置（含 extra_lua_path 与插件列表）
+  apisix/config.yaml          主网关（traditional，含 extra_lua_path 与插件列表）
+  apisix/config-data-plane.yaml  第二个网关（data_plane，不提供管理接口）
   backend/server.py           无第三方依赖的 Python JSON 后端
   plugins/apisix/plugins/     自定义学习插件（lance-request-id）
   routes/*.json               5 条网关路由配置
@@ -81,12 +83,13 @@ python3 scripts/lab.py down
 
 ## 安全与范围
 
-- 宿主机只发布 `127.0.0.1:9080` 和 `127.0.0.1:9180`，不直接发布 etcd 或后端端口。
+- 宿主机只发布 `127.0.0.1:9080`（主网关业务）、`127.0.0.1:9081`（数据面网关业务）和 `127.0.0.1:9180`（主网关管理接口），不直接发布 etcd 或后端端口。
 - 随机 `ADMIN_KEY`、`CONSUMER_KEY` 存在 `labs/01-gateway/.env`，默认权限 0600，已被 Git 忽略。
 - etcd 是单节点、无认证 HTTP 的本地实验环境，没有生产级高可用和安全防护。
 - 为接受 Docker bridge 的管理请求，容器内 `allow_admin` 较宽；不能复制到公网部署。
 - 限流使用调用方可控的 `X-Lab-Run` 请求头，方便重复测试；可以换头绕过，**不是安全限流方案**。
-- 限流 `policy: local` 是单网关本地计数，不能理解为多个网关共享的全局额度。
+- 限流 `policy: local` 是单网关本地计数，不能理解为多个网关共享的全局额度。**接入第二个网关后，实际可用额度会按实例数放大。**
+- 多网关只是共享同一份 etcd 配置；**网关前没有负载均衡**，etcd 也是单节点，因此这不构成生产高可用架构。
 - Python 后端用于回显，不存订单、不实现业务权限、不适合生产。
 - 镜像固定为 APISIX `3.14.1-debian`、etcd `v3.5.21`、Python `3.13.7-slim`，是实验版本，不声称为最新版；生产需审查受支持版本、安全公告与镜像摘要。
 

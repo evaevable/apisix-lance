@@ -30,10 +30,11 @@ python3 scripts/lab.py status
 不要把两个密钥混用：管理密钥用于 Admin API 的 `X-API-KEY`，调用方密钥用于认证插件的 `apikey`。
 启动命令自动选择 `docker compose` 或独立的 `docker-compose`，但都要求 Compose v2。
 
-宿主机只开放两个回环地址：
+宿主机只开放三个回环地址：
 
-- `http://127.0.0.1:9080`：业务请求入口。
-- `http://127.0.0.1:9180/apisix/admin`：管理入口，需要管理密钥。
+- `http://127.0.0.1:9080`：主网关的业务请求入口。
+- `http://127.0.0.1:9180/apisix/admin`：主网关的管理入口，需要管理密钥。
+- `http://127.0.0.1:9081`：第二个网关（`data_plane` 角色）的业务入口，**它没有管理接口**。
 
 etcd 和后端不发布到宿主机；容器仍需在 Docker bridge 网络中相互通信。不是生产级网络隔离。
 

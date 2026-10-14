@@ -1,0 +1,25 @@
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+  # 数据面不提供管理接口：不接收配置写入。
+  enable_admin: false
+  extra_lua_path: "/opt/apisix-plugins/?.lua"
+
+# 与主网关保持同一份插件列表，否则同一份路由在两边行为会不一致。
+plugins:
+  - key-auth
+  - limit-count
+  - proxy-rewrite
+  - prometheus
+  - lance-request-id
+
+deployment:
+  # 数据面角色：只处理业务请求，从 etcd 读取配置，不写配置。
+  role: data_plane
+  role_data_plane:
+    config_provider: etcd
+  etcd:
+    host:
+      - http://etcd:2379
+    prefix: /apisix
+    timeout: 30

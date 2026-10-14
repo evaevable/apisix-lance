@@ -16,6 +16,8 @@ LAB = ROOT / "labs" / "01-gateway"
 ENV_FILE = LAB / ".env"
 ADMIN_URL = "http://127.0.0.1:9180/apisix/admin"
 GATEWAY_URL = "http://127.0.0.1:9080"
+# 第二个网关：data_plane 角色，与主网关共享同一份 etcd 配置。
+GATEWAY2_URL = "http://127.0.0.1:9081"
 OPENER = build_opener(ProxyHandler({}))
 
 
@@ -189,6 +191,20 @@ def smoke():
     if not headers.get("x-lance-request-id"):
         raise RuntimeError("custom plugin route: response header X-Lance-Request-Id missing")
     print("PASS custom plugin: rewrite and header_filter both applied")
+    # 配置分发：第二个网关是 data_plane 角色，读取同一份 etcd 配置。
+    deadline = time.monotonic() + 30
+    while True:
+        status, body = request(GATEWAY2_URL + "/orders/123")
+        if status == 200:
+            break
+        if time.monotonic() >= deadline:
+            raise RuntimeError(
+                "Second gateway did not serve the shared route; check apisix-dp logs")
+        time.sleep(1)
+    check("second gateway (data_plane)", status, 200)
+    if json.loads(body).get("service") != "orders":
+        raise RuntimeError("Second gateway response mismatch")
+    print("PASS config distribution: both gateways serve the same route")
     # Unique client-supplied bucket key is for repeatable demos, NOT production security.
     headers = {"X-Lab-Run": secrets.token_hex(16)}
     for number, expected in enumerate((200, 200, 429), 1):

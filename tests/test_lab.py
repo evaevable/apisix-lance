@@ -123,6 +123,13 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(route["plugins"]["proxy-rewrite"]["regex_uri"],
                          ["^/protected/(.*)$", "/$1"])
 
+    def test_data_plane_config_declares_role(self):
+        conf = (lab.LAB / "apisix/config-data-plane.yaml").read_text()
+        self.assertIn("role: data_plane", conf)
+        self.assertIn("config_provider: etcd", conf)
+        self.assertIn("enable_admin: false", conf)
+        self.assertNotIn("admin_listen", conf)
+
     def test_custom_plugin_route_and_source(self):
         route = json.loads((lab.LAB / "routes/custom-plugin.json").read_text())
         self.assertIn("lance-request-id", route["plugins"])

@@ -44,6 +44,26 @@ services:
         condition: service_healthy
     networks: [lab]
 
+  # 第二个网关：角色是 data_plane，只处理业务请求，从同一个 etcd 读配置。
+  # 它不发布管理端口，也不接收配置写入。
+  apisix-dp:
+    image: apache/apisix:3.14.1-debian
+    volumes:
+      - ./apisix/config-data-plane.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./plugins:/opt/apisix-plugins:ro
+    ports:
+      - "127.0.0.1:9081:9080"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      orders-a:
+        condition: service_healthy
+      orders-b:
+        condition: service_healthy
+      products:
+        condition: service_healthy
+    networks: [lab]
+
   orders-a:
     image: python:3.13.7-slim
     command: ["python", "/app/server.py"]
