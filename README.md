@@ -17,10 +17,11 @@
 
 1. [源码第 1 章：一次 HTTP 请求如何穿过 APISIX](docs/source/01-http-request-lifecycle.md)
 2. [源码第 2 章：配置热更新是怎么实现的](docs/source/02-config-hot-reload.md)
+3. [源码第 3 章：key-auth 如何识别调用方](docs/source/03-key-auth-and-plugin-phases.md)
 
 源码阅读固定在官方 APISIX **3.14.1**，提交 `2f8ebf8527cdc878afe30100077c471879a5c133`，与实验的 APISIX 版本对应。笔记使用固定提交的源码链接；少量原文摘录的上游许可证与署名随文保留，不把整个上游仓库复制进学习仓库。
 
-后续再逐章追踪认证插件、负载均衡与重试；尚未完成的主题不作为已交付章节。
+后续再逐章追踪负载均衡、健康检查与重试；尚未完成的主题不作为已交付章节。
 
 ## 仓库内容
 
