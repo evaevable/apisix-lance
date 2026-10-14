@@ -53,6 +53,7 @@ python3 scripts/lab.py init
 | `products.json` | `/products/*` 转发到商品实例 |
 | `protected-orders.json` | `key-auth` 认证，去掉 `/protected` 前缀 |
 | `limited-orders.json` | 限流，去掉 `/limited` 前缀 |
+| `custom-plugin.json` | 自定义插件 `lance-request-id`，去掉 `/custom` 前缀 |
 
 这些例子把 Upstream 内联在 Route 中，减少首次学习概念数量；后续可拆成独立 Upstream 和 Service。
 

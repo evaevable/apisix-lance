@@ -1,6 +1,21 @@
 apisix:
   node_listen: 9080
   enable_ipv6: false
+  # 让 APISIX 能从挂载目录加载自定义插件：
+  # plugins/apisix/plugins/<name>.lua 对应 require("apisix.plugins.<name>")
+  extra_lua_path: "/opt/apisix-plugins/?.lua"
+
+# 显式声明启用的插件。实验环境只保留实际用到的，加上本章的自定义插件。
+# 不声明时会加载全部默认插件；声明后未列出的插件不会被加载。
+#
+# 注意：prometheus 必须保留。它的共享字典是按 enabled_plugins 条件创建的，
+# 移除后会导致其它插件的加载链路报错（本项目实测）。
+plugins:
+  - key-auth
+  - limit-count
+  - proxy-rewrite
+  - prometheus
+  - lance-request-id
 
 nginx_config:
   envs:

@@ -71,6 +71,12 @@ def compose(*args):
 
 
 def request(url, method="GET", data=None, headers=None):
+    status, body, _ = request_full(url, method, data, headers)
+    return status, body
+
+
+def request_full(url, method="GET", data=None, headers=None):
+    """Like request(), but also returns response headers (lowercased keys)."""
     headers = dict(headers or {})
     body = None
     if data is not None:
@@ -79,9 +85,12 @@ def request(url, method="GET", data=None, headers=None):
     req = Request(url, data=body, method=method, headers=headers)
     try:
         with OPENER.open(req, timeout=3) as response:
-            return response.status, response.read().decode("utf-8")
+            return (response.status,
+                    response.read().decode("utf-8"),
+                    {k.lower(): v for k, v in response.headers.items()})
     except HTTPError as error:
-        return error.code, error.read().decode("utf-8")
+        return (error.code, error.read().decode("utf-8"),
+                {k.lower(): v for k, v in error.headers.items()})
 
 
 def wait_for_admin(key, timeout=90):
@@ -173,6 +182,13 @@ def smoke():
     if json.loads(body).get("path") != "/orders/123":
         raise RuntimeError("proxy-rewrite did not strip /protected")
     print("PASS proxy-rewrite: backend received /orders/123")
+    status, body, headers = request_full(GATEWAY_URL + "/custom/orders/123")
+    check("custom plugin route", status, 200)
+    if json.loads(body).get("path") != "/orders/123":
+        raise RuntimeError("custom plugin route: /custom prefix was not rewritten")
+    if not headers.get("x-lance-request-id"):
+        raise RuntimeError("custom plugin route: response header X-Lance-Request-Id missing")
+    print("PASS custom plugin: rewrite and header_filter both applied")
     # Unique client-supplied bucket key is for repeatable demos, NOT production security.
     headers = {"X-Lab-Run": secrets.token_hex(16)}
     for number, expected in enumerate((200, 200, 429), 1):
@@ -183,12 +199,22 @@ def smoke():
 
 def validate():
     files = sorted((LAB / "routes").glob("*.json"))
-    if len(files) != 4:
-        raise RuntimeError("Expected exactly four lab route files")
+    expected_ids = {"orders", "products", "protected-orders", "limited-orders",
+                    "custom-plugin"}
+    found_ids = {file.stem for file in files}
+    missing = expected_ids - found_ids
+    if missing:
+        raise RuntimeError(f"Missing lab route files: {sorted(missing)}")
     for file in files:
         route = json.loads(file.read_text(encoding="utf-8"))
         if not route.get("uri") or not route.get("upstream", {}).get("nodes"):
             raise RuntimeError(f"Invalid route structure: {file.name}")
+    custom = json.loads((LAB / "routes/custom-plugin.json").read_text(encoding="utf-8"))
+    if "lance-request-id" not in custom.get("plugins", {}):
+        raise RuntimeError("custom-plugin route must enable lance-request-id")
+    plugin_file = LAB / "plugins/apisix/plugins/lance-request-id.lua"
+    if not plugin_file.is_file():
+        raise RuntimeError("Custom plugin source file is missing")
     print("PASS JSON syntax and basic route structure (not APISIX schema validation)")
 
 

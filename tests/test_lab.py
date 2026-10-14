@@ -69,6 +69,15 @@ class BackendTests(unittest.TestCase):
             self.get("/orders-other/123")
         self.assertEqual(result.exception.code, 404)
 
+    def test_lab_request_helper_shapes(self):
+        # request() must keep returning exactly two values; request_full() adds headers.
+        status, body = lab.request(self.url + "/health")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)["status"], "ok")
+        status, body, headers = lab.request_full(self.url + "/health")
+        self.assertEqual(status, 200)
+        self.assertIn("content-type", headers)
+
 
 class HelperTests(unittest.TestCase):
     def test_route_jsons(self):
@@ -113,6 +122,15 @@ class HelperTests(unittest.TestCase):
         self.assertIn("key-auth", route["plugins"])
         self.assertEqual(route["plugins"]["proxy-rewrite"]["regex_uri"],
                          ["^/protected/(.*)$", "/$1"])
+
+    def test_custom_plugin_route_and_source(self):
+        route = json.loads((lab.LAB / "routes/custom-plugin.json").read_text())
+        self.assertIn("lance-request-id", route["plugins"])
+        plugin_file = lab.LAB / "plugins/apisix/plugins/lance-request-id.lua"
+        self.assertTrue(plugin_file.is_file())
+        text = plugin_file.read_text()
+        for field in ("priority", "version", "schema", "header_filter"):
+            self.assertIn(field, text)
 
     def test_readiness_auth_error_is_not_retried(self):
         with patch.object(lab, "request", return_value=(403, "forbidden")) as request:

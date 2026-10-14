@@ -28,6 +28,8 @@ services:
       ADMIN_KEY: ${ADMIN_KEY:?Run python3 scripts/lab.py prepare first}
     volumes:
       - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      # 自定义插件目录。路径需配合 config.yaml 的 extra_lua_path。
+      - ./plugins:/opt/apisix-plugins:ro
     ports:
       - "127.0.0.1:9080:9080"
       - "127.0.0.1:9180:9180"

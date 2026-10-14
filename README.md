@@ -21,6 +21,7 @@
 4. [源码第 4 章：选节点、健康检查与重试](docs/source/04-load-balancing-and-retries.md)
 5. [源码第 5 章：可观测性——怎么定位一次线上故障](docs/source/05-observability.md)
 6. [源码第 6 章：上游 TLS 与 mTLS](docs/source/06-upstream-tls-mtls.md)
+7. [源码第 7 章：自己写一个插件](docs/source/07-plugin-development.md)
 
 源码阅读固定在官方 APISIX **3.14.1**，提交 `2f8ebf8527cdc878afe30100077c471879a5c133`，与实验的 APISIX 版本对应。笔记使用固定提交的源码链接；少量原文摘录的上游许可证与署名随文保留，不把整个上游仓库复制进学习仓库。
 
@@ -32,9 +33,10 @@
 docs/                         中文学习笔记与实验步骤
 labs/01-gateway/
   compose.yaml                APISIX + etcd + 3 个演示后端
-  apisix/config.yaml          本地传统 etcd 模式配置
+  apisix/config.yaml          本地传统 etcd 模式配置（含 extra_lua_path 与插件列表）
   backend/server.py           无第三方依赖的 Python JSON 后端
-  routes/*.json               4 条网关路由配置
+  plugins/apisix/plugins/     自定义学习插件（lance-request-id）
+  routes/*.json               5 条网关路由配置
 scripts/lab.py                密钥生成、启停、路由初始化、冒烟验证
 tests/test_lab.py             无 Docker 依赖的单元测试
 .github/workflows/verify.yml  GitHub Actions 单元测试与集成验证
@@ -73,6 +75,7 @@ python3 scripts/lab.py down
 | `GET /missing` | 无匹配路由，返回 404 |
 | `GET /protected/orders/123` | 无凭证或错误凭证返回 401；正确 `apikey` 返回 200 |
 | `GET /limited/orders/123` | 同一个演示计数键 60 秒内前 2 次返回 200，第 3 次返回 429 |
+| `GET /custom/orders/123` | 自定义插件生效：响应带 `X-Lance-Request-Id`，后端仍收到 `/orders/123` |
 
 认证路由和限流路由会把额外的路径前缀去掉，后端仍收到 `/orders/123`。
 
